@@ -1,4 +1,4 @@
-"""Statistical routines for the language-network analyses."""
+"""Shared statistical functions for the language-network analyses."""
 
 from __future__ import annotations
 import scipy

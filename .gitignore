@@ -5,6 +5,5 @@ __pycache__/
 data/
 results/
 outputs/
-config.local.json
 *.local.json
 *.log
