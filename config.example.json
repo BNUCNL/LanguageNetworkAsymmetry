@@ -1,0 +1,7 @@
+{
+  "inputs": {
+    "subject_metrics": "../data/subject_metrics.csv",
+    "homotopic_metrics": "../data/homotopic_subject_metrics.csv",
+    "diffusion_eigenvalues": "../data/diffusion_eigenvalues.csv"
+  }
+}
