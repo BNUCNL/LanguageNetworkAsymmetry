@@ -25,6 +25,35 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 
+SETTINGS = {
+    "schema_version": 1,
+    "sample_n": 1167,
+    "atlas_dir": "external/atlases/ColeAnticevicNetPartition",
+    "materials": {
+        "gradient": {
+            "mean_csv": "manuscript/reports/figure1_concept_20260925/displayed_gradient_values.csv",
+            "index_column": "parcel_index",
+            "value_column": "mean_principal_gradient",
+            "sample_n": 1167,
+        },
+        "activation": {
+            "mean_csv": "manuscript/reports/figure1_integrated_20260925/activation_mean_parcels.csv",
+            "index_column": "INDEX",
+            "value_column": "mean_rs_minus_cb_raw_beta",
+            "sample_n": 1167,
+        },
+        "fc": {
+            "mean_matrix": "manuscript/reports/fig1_fc_matrix_20260925/mean_fc_original_order.npy",
+            "sample_n": 1167,
+        },
+    },
+    "atlas_illustrations": {
+        "glasser_colors": "external/atlases/HCPMMP1_original_colors/BALSA_2xZq_public_label_table.html",
+        "networks": True,
+        "language_members": True,
+    },
+}
+OUTPUT_DIR = Path("figures/fig1")
 DPI = 600
 KEY_NAME = (
     "CortexSubcortex_ColeAnticevic_NetPartition_wSubcorGSR_parcels_LR_LabelKey.txt"
@@ -1028,10 +1057,10 @@ def render_atlas_materials(spec, base, atlas_dir, atlas, resources, out, inputs)
     return results
 
 
-def run(config_path: Path, output_dir: str) -> dict:
-    config_path = config_path.resolve()
-    base = config_path.parent
-    config = json.loads(config_path.read_text())
+def run(output_dir: str) -> dict:
+    config_path = Path(__file__).resolve()
+    base = Path.cwd()
+    config = SETTINGS
     if config.get("schema_version") != 1:
         raise ValueError("Expected schema_version=1")
     materials = config.get("materials", {})
@@ -1054,13 +1083,8 @@ def run(config_path: Path, output_dir: str) -> dict:
         if sum((name in spec for name in choices)) != 1:
             raise ValueError(f"{kind}: supply exactly one of {choices}")
     out = resolve_path(base, output_dir)
-    if (
-        out == Path(__file__).resolve().parent
-        or Path(__file__).resolve().parent in out.parents
-    ):
-        raise ValueError(
-            "Participant outputs must be outside the release code directory"
-        )
+    if out == Path(__file__).resolve().parent:
+        raise ValueError("Choose an output subdirectory, not the code directory itself")
     if out.exists() and any(out.iterdir()):
         raise ValueError("Use a new or empty output directory")
     n = config.get("sample_n", 1167)
@@ -1174,14 +1198,11 @@ def run(config_path: Path, output_dir: str) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    parser.add_argument("--config", required=True, type=Path)
-    parser.add_argument("--output-dir", required=True)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR)
     args = parser.parse_args()
-    result = run(args.config, args.output_dir)
-    print(json.dumps({"materials": list(result["materials"]), "model_refits": 0}))
+    result = run(args.output_dir)
+    print(json.dumps({"completed": list(result["materials"])}))
 
 
 if __name__ == "__main__":

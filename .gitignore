@@ -4,6 +4,8 @@ __pycache__/
 .venv/
 data/
 results/
-outputs/
-*.local.json
+figures/
+external/
+analyses/
+manuscript/
 *.log

@@ -10,6 +10,12 @@ import sys
 import numpy as np
 import pandas as pd
 
+METRICS_FILE = Path("results/metrics/subject_metrics.csv")
+HOMOTOPIC_FILE = Path("results/metrics/homotopic_subject_metrics.csv")
+EIGENVALUES_FILE = Path(
+    "analyses/study1_ccbd_language_functional_lateralization_development/supplementary/brainspace_scree_full_20261005/results/source_lambdas.csv"
+)
+
 
 def curve_correlations(main_dir, homotopic_dir):
     main = pd.read_csv(Path(main_dir) / "age_curves.csv", float_precision="round_trip")
@@ -116,28 +122,29 @@ def summarize_spectrum(config, config_path, output_dir):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", type=Path, required=True)
-    parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--output-dir", type=Path)
     parser.add_argument(
-        "--main-results-dir",
-        type=Path,
-        help="Optional main asymmetry output for descriptive curve correlations",
+        "--main-results-dir", type=Path, default=Path("results/asymmetry")
     )
-    parser.add_argument(
-        "--spectrum-only",
-        action="store_true",
-        help="Summarize supplied diffusion eigenvalues instead of the homologous-parcel models",
-    )
+    parser.add_argument("--spectrum-only", action="store_true")
     args = parser.parse_args()
+    if args.output_dir is None:
+        args.output_dir = Path(
+            "results/spectrum" if args.spectrum_only else "results/supplementary_9v9"
+        )
     if args.spectrum_only:
-        config, config_path = prep.load_config(args.config)
-        summarize_spectrum(config, config_path, args.output_dir)
+        settings = {
+            "inputs": {
+                "subject_metrics": str(METRICS_FILE),
+                "diffusion_eigenvalues": str(EIGENVALUES_FILE),
+            }
+        }
+        summarize_spectrum(settings, Path(__file__), args.output_dir)
         return
     shared = load_module("stats.py")
     analysis = load_module("03_developmental_dissociation.py")
-    config = shared.read_config(args.config)
-    main_path = shared.input_path(config, "subject_metrics")
-    paired_path = shared.input_path(config, "homotopic_metrics")
+    main_path = METRICS_FILE
+    paired_path = HOMOTOPIC_FILE
     if main_path.resolve() == paired_path.resolve():
         raise ValueError("Main and homotopic metrics must be separate files")
     original = shared.load_sample(main_path)
@@ -173,14 +180,14 @@ def main():
         raise ValueError(
             "The authorized homotopic analysis requires 1,167 participants"
         )
-    output = shared.output_path(config, args.output_dir).resolve()
+    output = args.output_dir.resolve()
     if output in {main_path.resolve().parent, paired_path.resolve().parent}:
         raise ValueError("Use a separate output directory, not an input directory")
     if output.exists() and any(output.iterdir()):
         raise FileExistsError(f"Output directory is not empty: {output}")
     analysis.run(paired, output, definition="9v9")
     if args.main_results_dir:
-        curve_correlations(shared.output_path(config, args.main_results_dir), output)
+        curve_correlations(Path(args.main_results_dir), output)
 
 
 if __name__ == "__main__":

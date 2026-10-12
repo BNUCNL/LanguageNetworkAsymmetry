@@ -19,31 +19,19 @@ The study includes 1167 right-handed children and adolescents from the Chinese C
 
 ## Run
 
+Run from the repository root. The scripts contain the relative paths to the project data and atlas files. Analysis outputs go to `results/`, and figure materials go to `figures/`.
+
 ```bash
 python -m pip install -r requirements.txt
-cp config.example.json config.local.json
-cp brain_materials.example.json brain_materials.local.json
-cp figures.example.json figures.local.json
+python 01_data_preparation.py
+python 02_asymmetry_extraction.py
+python 03_developmental_dissociation.py
+python 04_reading_associations.py
+python 05_moderated_mediation.py
+python 06_supplementary_analysis.py
+python 06_supplementary_analysis.py --spectrum-only
+python 07_plot_brain_materials.py
+python 08_plot_results.py
 ```
 
-Set the file paths in the local configuration files, then run:
-
-```bash
-python 01_data_preparation.py --config config.local.json --output-dir ../study_results/prepared
-python 02_asymmetry_extraction.py --config config.local.json --output-dir ../study_results/metrics
-python 03_developmental_dissociation.py --config config.local.json --output-dir ../study_results/asymmetry
-python 04_reading_associations.py --config config.local.json --output-dir ../study_results/reading
-python 05_moderated_mediation.py --config config.local.json --output-dir ../study_results/mediation --bootstraps 10000 --seed 42
-python 06_supplementary_analysis.py --config config.local.json --output-dir ../study_results/supplementary_9v9 --main-results-dir ../study_results/asymmetry
-python 06_supplementary_analysis.py --config config.local.json --output-dir ../study_results/spectrum --spectrum-only
-python 07_plot_brain_materials.py --config brain_materials.local.json --output-dir ../study_results/fig1
-python 08_plot_results.py --config figures.local.json --output-dir ../study_results/figures
-```
-
-To extract beta values from first-level task outputs before preparing the sample:
-
-```bash
-python 01_data_preparation.py extract-beta --config config.local.json --output-dir ../study_results/task_betas
-```
-
-Relative paths resolve from the configuration file. Use new output directories. Figure scripts produce separate 600 dpi TIFF panels; result-panel text is 12 pt.
+Use new output directories; existing results are not overwritten. Figure scripts produce separate 600 dpi TIFF panels with 12 pt result-panel text.

@@ -5,6 +5,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+METRICS_FILE = Path("results/metrics/subject_metrics.csv")
+OUTPUT_DIR = Path("results/mediation")
 PATHS = ("a", "b", "c_prime", "c")
 ANCHORS = {"low": -1.0, "mean": 0.0, "high": 1.0}
 GROUPS = ((6, 9, "6-8"), (9, 12, "9-11"), (12, 16, "12-15"))
@@ -179,12 +181,11 @@ def run(data, output_dir, count=10000, seed=42):
 
 
 def main():
-    args = stats.analysis_arguments(__doc__, bootstrap=True)
-    config = stats.read_config(args.config)
-    data = stats.load_sample(stats.input_path(config, "subject_metrics"))
+    args = stats.analysis_arguments(__doc__, OUTPUT_DIR, bootstrap=True)
+    data = stats.load_sample(METRICS_FILE)
     if len(data) != 1167:
         raise ValueError("The manuscript analysis requires 1167 participants")
-    run(data, stats.output_path(config, args.output_dir), args.bootstraps, args.seed)
+    run(data, args.output_dir, count=args.bootstraps, seed=args.seed)
 
 
 if __name__ == "__main__":

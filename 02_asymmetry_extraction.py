@@ -9,6 +9,19 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+INPUTS = {
+    "prepared_sample": "results/prepared/prepared_sample.csv",
+    "retained_runs": "results/prepared/retained_runs.csv",
+    "sample_flow": "results/prepared/sample_flow.csv",
+    "gradients": "data/interim/brain_gradients_3981x360x3.npy",
+    "brain_index": "data/processed/brain_subject_index.csv",
+    "atlas": "external/atlases/ColeAnticevicNetPartition/CortexSubcortex_ColeAnticevic_NetPartition_wSubcorGSR_parcels_LR_LabelKey.txt",
+    "left_handed": "data/processed/ccbd_left_handed_subjects.csv",
+    "task_beta_run_level": "data/raw/task_fmri_mmp360/single_condition_beta_2026-08-31/task_cl_beta_mmp360_run_level.csv",
+    "task_beta_subject_runmean": "data/raw/task_fmri_mmp360/single_condition_beta_2026-08-31/task_cl_beta_mmp360_subject_runmean.csv",
+    "task_spm_audit": "data/raw/task_fmri_mmp360/single_condition_beta_2026-08-31/spm_design_audit.tsv",
+}
+
 
 def load_preparation():
     path = Path(__file__).resolve().with_name("01_data_preparation.py")
@@ -282,11 +295,10 @@ def extract(config, config_path, output_dir):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", required=True, type=Path)
-    parser.add_argument("--output-dir", required=True)
+    parser.add_argument("--output-dir", type=Path, default=Path("results/metrics"))
     args = parser.parse_args()
-    config, config_path = prep.load_config(args.config)
-    extract(config, config_path, args.output_dir)
+    settings = {"inputs": INPUTS, "extraction": {"include_9v9": True}}
+    extract(settings, Path(__file__), args.output_dir)
 
 
 if __name__ == "__main__":

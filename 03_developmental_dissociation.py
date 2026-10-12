@@ -6,6 +6,9 @@ import numpy as np
 import pandas as pd
 from scipy.stats import t as student_t
 
+METRICS_FILE = Path("results/metrics/subject_metrics.csv")
+OUTPUT_DIR = Path("results/asymmetry")
+
 
 def run(data, output_dir, definition="14v9"):
     output = stats.output_directory(output_dir)
@@ -81,12 +84,11 @@ def run(data, output_dir, definition="14v9"):
 
 
 def main():
-    args = stats.analysis_arguments(__doc__)
-    config = stats.read_config(args.config)
-    data = stats.load_sample(stats.input_path(config, "subject_metrics"))
+    args = stats.analysis_arguments(__doc__, OUTPUT_DIR, bootstrap=False)
+    data = stats.load_sample(METRICS_FILE)
     if len(data) != 1167:
         raise ValueError("The manuscript analysis requires 1167 participants")
-    run(data, stats.output_path(config, args.output_dir))
+    run(data, args.output_dir)
 
 
 if __name__ == "__main__":

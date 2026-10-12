@@ -12,6 +12,25 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+INPUTS = {
+    "demographics": "data/interim/demographics.csv",
+    "behavior": "data/interim/behavior_full.csv",
+    "sites": "data/interim/site_info.csv",
+    "brain_index": "data/processed/brain_subject_index.csv",
+    "left_handed": "data/processed/ccbd_left_handed_subjects.csv",
+    "motion_run_level": "data/processed/ccbd_motion_fd_run_level.csv",
+    "motion_subject_level": "data/processed/ccbd_motion_fd_subject_level.csv",
+    "task_beta_run_level": "data/raw/task_fmri_mmp360/single_condition_beta_2026-08-31/task_cl_beta_mmp360_run_level.csv",
+    "task_beta_subject_runmean": "data/raw/task_fmri_mmp360/single_condition_beta_2026-08-31/task_cl_beta_mmp360_subject_runmean.csv",
+    "task_spm_audit": "data/raw/task_fmri_mmp360/single_condition_beta_2026-08-31/spm_design_audit.tsv",
+}
+BETA_INPUTS = {
+    "participants": "../BIDS_DATA/MRI_cl_fmri_prep_20251024/participants.tsv",
+    "dataset_root": "../BIDS_DATA/MRI_cl_fmri_prep_20251024/v1",
+    "atlas_left": "../Downloads/cortex_ColeAnticevic_NetPartition_GlasserParcels_L.label.gii",
+    "atlas_right": "../Downloads/cortex_ColeAnticevic_NetPartition_GlasserParcels_R.label.gii",
+    "label_key": "external/atlases/ColeAnticevicNetPartition/CortexSubcortex_ColeAnticevic_NetPartition_wSubcorGSR_parcels_LR_LabelKey.txt",
+}
 AGE, GRADE, SEX = ("Age_continuous", "grade_num", "sex_num")
 SEX_LABEL, STAGE = ("性别", "学段")
 REGION = "站点流域"
@@ -68,16 +87,8 @@ def sha256(path):
     return digest.hexdigest()
 
 
-def load_config(path):
-    path = Path(path).expanduser().resolve()
-    config = json.loads(path.read_text(encoding="utf-8"))
-    require(isinstance(config, dict), "Config must be a JSON object")
-    return (config, path)
-
-
 def resolve_path(config_path, value):
-    path = Path(value).expanduser()
-    return (path if path.is_absolute() else config_path.parent / path).resolve()
+    return Path(value).expanduser().resolve()
 
 
 def input_paths(config, config_path, required, optional=()):
@@ -97,8 +108,8 @@ def input_paths(config, config_path, required, optional=()):
 def new_output(config_path, value):
     path = resolve_path(config_path, value)
     require(
-        not path.is_relative_to(Path(__file__).resolve().parent),
-        "Participant outputs must be outside the release code directory",
+        not path == Path(__file__).resolve().parent,
+        "Choose an output subdirectory, not the code directory itself",
     )
     require(not path.exists(), f"Output directory already exists: {path}")
     path.mkdir(parents=True)
@@ -402,7 +413,7 @@ def motion_tables(paths, retained):
 def write_report(out, name, config_path, paths, details):
     report = {
         "schema_version": 1,
-        "config_sha256": sha256(config_path),
+        "script_sha256": sha256(config_path),
         "software": {
             "python": platform.python_version(),
             "numpy": np.__version__,
@@ -816,18 +827,18 @@ def extract_beta(config, config_path, output_dir):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
-    )
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "command", choices=["prepare", "extract-beta"], nargs="?", default="prepare"
     )
-    parser.add_argument("--config", required=True, type=Path)
-    parser.add_argument("--output-dir", required=True)
+    parser.add_argument("--output-dir", type=Path)
     args = parser.parse_args()
-    config, config_path = load_config(args.config)
+    output = args.output_dir or Path(
+        "results/task_betas" if args.command == "extract-beta" else "results/prepared"
+    )
+    settings = {"inputs": INPUTS, "beta_extraction": BETA_INPUTS}
     (prepare if args.command == "prepare" else extract_beta)(
-        config, config_path, args.output_dir
+        settings, Path(__file__), output
     )
 
 

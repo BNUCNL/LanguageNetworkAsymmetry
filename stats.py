@@ -28,18 +28,6 @@ ASSOCIATION_TERMS = (
 )
 
 
-def read_config(path):
-    path = Path(path).resolve()
-    config = json.loads(path.read_text(encoding="utf-8"))
-    config["_config_dir"] = str(path.parent)
-    return config
-
-
-def input_path(config, key):
-    path = Path(config["inputs"][key]).expanduser()
-    return path if path.is_absolute() else Path(config["_config_dir"]) / path
-
-
 def read_csv(path):
     return pd.read_csv(path, dtype={"sub_id": str}, float_precision="round_trip")
 
@@ -69,25 +57,17 @@ def load_sample(path, required=None):
 
 def output_directory(path):
     path = Path(path).resolve()
-    if path.is_relative_to(Path(__file__).resolve().parent):
-        raise ValueError(
-            "Write participant-derived outputs outside the release code directory"
-        )
+    if path == Path(__file__).resolve().parent:
+        raise ValueError("Choose an output subdirectory, not the code directory itself")
     if path.exists() and any(path.iterdir()):
         raise FileExistsError(f"Output directory is not empty: {path}")
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 
-def output_path(config, path):
-    path = Path(path).expanduser()
-    return path if path.is_absolute() else Path(config["_config_dir"]) / path
-
-
-def analysis_arguments(description, bootstrap=False):
+def analysis_arguments(description, output_dir, bootstrap=False):
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument("--config", type=Path, required=True)
-    parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--output-dir", type=Path, default=output_dir)
     if bootstrap:
         parser.add_argument("--bootstraps", type=int, default=10000)
         parser.add_argument("--seed", type=int, default=42)

@@ -15,6 +15,19 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 
+SETTINGS = {
+    "schema_version": 1,
+    "sample_n": 1167,
+    "font_family": "Arial",
+    "results": {
+        "asymmetry": "results/asymmetry",
+        "reading": "results/reading",
+        "mediation": "results/mediation",
+        "homotopic": "results/supplementary_9v9",
+        "spectrum": "results/spectrum",
+    },
+}
+OUTPUT_DIR = Path("figures/results")
 DPI = 600
 COLORS = {"connectivity": "#116496", "activation": "#116496", "reading": "#116496"}
 STEMS = {
@@ -637,15 +650,16 @@ def render_spectrum(spec, base, out, inputs, n):
     }
 
 
-def run(config_path: Path, output_dir: str) -> dict:
-    config_path = config_path.resolve()
-    config = json.loads(config_path.read_text())
+def run(output_dir: str) -> dict:
+    config_path = Path(__file__).resolve()
+    base = Path.cwd()
+    config = SETTINGS
     if config.get("schema_version") != 1:
         raise ValueError("Expected schema_version=1")
     if "results" in config and "panels" in config:
         raise ValueError("Use results directory mode or explicit panels, not both")
     panels = (
-        result_panels(config["results"], config_path.parent)
+        result_panels(config["results"], base)
         if "results" in config
         else config.get("panels", {})
     )
@@ -665,23 +679,16 @@ def run(config_path: Path, output_dir: str) -> dict:
     n = config.get("sample_n", 1167)
     if not isinstance(n, int) or n < 1:
         raise ValueError("sample_n must be a positive integer")
-    out = resolve_path(config_path.parent, output_dir)
-    if (
-        out == Path(__file__).resolve().parent
-        or Path(__file__).resolve().parent in out.parents
-    ):
-        raise ValueError(
-            "Participant outputs must be outside the release code directory"
-        )
+    out = resolve_path(base, output_dir)
+    if out == Path(__file__).resolve().parent:
+        raise ValueError("Choose an output subdirectory, not the code directory itself")
     if out.exists() and any(out.iterdir()):
         raise ValueError(
             "Use a new or empty output directory; existing results are not overwritten"
         )
     font = config.get("font_family", "Arial")
     if "font_file" in config:
-        font_manager.fontManager.addfont(
-            str(resolve_path(config_path.parent, config["font_file"]))
-        )
+        font_manager.fontManager.addfont(str(resolve_path(base, config["font_file"])))
     font_path = apply_style(font)
     out.mkdir(parents=True, exist_ok=True)
     (out / "source_data").mkdir()
@@ -689,15 +696,13 @@ def run(config_path: Path, output_dir: str) -> dict:
     results = {}
     for key, spec in panels.items():
         if key == "supp_fig1":
-            results[key] = render_spectrum(spec, config_path.parent, out, inputs, n)
+            results[key] = render_spectrum(spec, base, out, inputs, n)
         elif key == "fig4b":
-            results[key] = render_groups(spec, config_path.parent, out, inputs, n)
+            results[key] = render_groups(spec, base, out, inputs, n)
         elif key in ("fig2c", "fig3c", "fig3d", "supp_fig2_9v9c"):
-            results[key] = render_coefficients(
-                key, spec, config_path.parent, out, inputs, n
-            )
+            results[key] = render_coefficients(key, spec, base, out, inputs, n)
         else:
-            results[key] = render_scatter(key, spec, config_path.parent, out, inputs, n)
+            results[key] = render_scatter(key, spec, base, out, inputs, n)
     for path, expected in inputs.items():
         if sha256(Path(path)) != expected:
             raise RuntimeError(f"Input changed during rendering: {path}")
@@ -725,14 +730,11 @@ def run(config_path: Path, output_dir: str) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    parser.add_argument("--config", required=True, type=Path)
-    parser.add_argument("--output-dir", required=True)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR)
     args = parser.parse_args()
-    result = run(args.config, args.output_dir)
-    print(json.dumps({"panels": list(result["panels"]), "model_refits": 0}))
+    result = run(args.output_dir)
+    print(json.dumps({"completed": list(result["panels"])}))
 
 
 if __name__ == "__main__":
