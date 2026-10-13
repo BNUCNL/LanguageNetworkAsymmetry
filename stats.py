@@ -421,3 +421,4 @@ def write_metadata(output, data, indices, seed, specifications):
     (output / "metadata.json").write_text(
         json.dumps(metadata, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
+
